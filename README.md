@@ -1,7 +1,3 @@
-Here's a **unique and professional** `README.md` for your **Segin-Doomware** repository:  
-
----
-
 ### **Segin-Doomware** 🕷️💀  
 *A customizable doomware framework, inspired by the Sogu virus.*  
 

